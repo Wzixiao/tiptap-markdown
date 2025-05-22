@@ -14,7 +14,7 @@ export interface MarkdownOptions  {
     breaks?: Boolean,
     transformPastedText?: Boolean,
     transformCopiedText?: Boolean,
-    ignoreRegex: String[]
+    ignoreRegex?: RegExp[]
 }
 
 export interface MarkdownStorage {

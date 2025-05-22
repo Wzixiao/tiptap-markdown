@@ -33,7 +33,7 @@ export class MarkdownParser {
 
       let placeholderIndex = 0;
 
-      for (const regex of this.ignoreRegex) {
+      for (const regex of (this.ignoreRegex ?? [])) {
         processedContent = processedContent.replace(regex, (match) => {
           const placeholder = `IGNORE_${placeholderIndex}`;
           placeholders.set(placeholder, match);
