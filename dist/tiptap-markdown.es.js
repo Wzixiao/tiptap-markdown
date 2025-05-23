@@ -10,6 +10,7 @@ import { DOMParser, Fragment } from "@tiptap/pm/model";
 import markdownit from "markdown-it";
 import { defaultMarkdownSerializer, MarkdownSerializerState as MarkdownSerializerState$1 } from "prosemirror-markdown";
 import taskListPlugin from "markdown-it-task-lists";
+import { decode } from "he";
 function elementFromString(value) {
   const wrappedValue = `<body>${value}</body>`;
   return new window.DOMParser().parseFromString(wrappedValue, "text/html").body;
@@ -702,7 +703,8 @@ class MarkdownParser {
       let processedContent = content;
       const placeholders = /* @__PURE__ */ new Map();
       let placeholderIndex = 0;
-      for (const regex of this.ignoreRegex) {
+      for (const regex of (_this$ignoreRegex = this.ignoreRegex) !== null && _this$ignoreRegex !== void 0 ? _this$ignoreRegex : []) {
+        var _this$ignoreRegex;
         processedContent = processedContent.replace(regex, (match) => {
           const placeholder = `IGNORE_${placeholderIndex}`;
           placeholders.set(placeholder, match);
@@ -727,17 +729,23 @@ class MarkdownParser {
         }, element);
       });
       let finalHTML = element.innerHTML;
-      const entries = Array.from(placeholders.entries());
-      for (let i = entries.length - 1; i >= 0; i--) {
-        const [placeholder, original] = entries[i];
-        finalHTML = finalHTML.split(placeholder).join(original);
-      }
       const finalElement = elementFromString(finalHTML);
       this.normalizeDOM(finalElement, {
         inline,
         content
       });
-      return finalElement.innerHTML;
+      finalHTML = finalElement.innerHTML;
+      const entries = Array.from(placeholders.entries());
+      for (let i = entries.length - 1; i >= 0; i--) {
+        const [placeholder, original] = entries[i];
+        let processedOriginal = original;
+        processedOriginal = processedOriginal.replace(/(\S)</g, "$1 <");
+        processedOriginal = processedOriginal.replace(/<(\S)/g, "< $1");
+        processedOriginal = processedOriginal.replace(/(\S)>/g, "$1 >");
+        processedOriginal = processedOriginal.replace(/>(\S)/g, "> $1");
+        finalHTML = finalHTML.split(placeholder).join(processedOriginal);
+      }
+      return decode(finalHTML);
     }
     return content;
   }

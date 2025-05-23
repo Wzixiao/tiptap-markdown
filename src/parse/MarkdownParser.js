@@ -2,6 +2,7 @@ import markdownit from "markdown-it";
 
 import { elementFromString, extractElement, unwrapElement } from "../util/dom";
 import { getMarkdownSpec } from "../util/extensions";
+import { decode } from "he";
 
 export class MarkdownParser {
   /**
@@ -24,7 +25,7 @@ export class MarkdownParser {
     );
     this.ignoreRegex = ignoreRegex;
   }
-
+ 
   parse(content, { inline } = {}) {
     if (typeof content === "string") {
       let processedContent = content;
@@ -33,7 +34,7 @@ export class MarkdownParser {
 
       let placeholderIndex = 0;
 
-      for (const regex of (this.ignoreRegex ?? [])) {
+      for (const regex of this.ignoreRegex ?? []) {
         processedContent = processedContent.replace(regex, (match) => {
           const placeholder = `IGNORE_${placeholderIndex}`;
           placeholders.set(placeholder, match);
@@ -56,16 +57,32 @@ export class MarkdownParser {
 
       let finalHTML = element.innerHTML;
 
-      const entries = Array.from(placeholders.entries());
-      for (let i = entries.length - 1; i >= 0; i--) {
-        const [placeholder, original] = entries[i];
-        finalHTML = finalHTML.split(placeholder).join(original);
-      }
-
       const finalElement = elementFromString(finalHTML);
       this.normalizeDOM(finalElement, { inline, content });
 
-      return finalElement.innerHTML;
+      finalHTML = finalElement.innerHTML;
+
+      const entries = Array.from(placeholders.entries());
+      for (let i = entries.length - 1; i >= 0; i--) {
+        const [placeholder, original] = entries[i];
+
+        // Modified logic for handling < and >
+        let processedOriginal = original;
+
+        // Add space before < if preceded by a character
+        processedOriginal = processedOriginal.replace(/(\S)</g, "$1 <");
+        // Add space after < if followed by a character
+        processedOriginal = processedOriginal.replace(/<(\S)/g, "< $1");
+
+        // Add space before > if preceded by a character
+        processedOriginal = processedOriginal.replace(/(\S)>/g, "$1 >");
+        // Add space after > if followed by a character
+        processedOriginal = processedOriginal.replace(/>(\S)/g, "> $1");
+
+        finalHTML = finalHTML.split(placeholder).join(processedOriginal);
+      }
+
+      return decode(finalHTML);
     }
 
     return content;

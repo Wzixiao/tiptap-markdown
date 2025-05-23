@@ -1,6 +1,6 @@
 (function(global, factory) {
-  typeof exports === "object" && typeof module !== "undefined" ? factory(exports, require("@tiptap/core"), require("@tiptap/pm/state"), require("@tiptap/pm/model"), require("markdown-it"), require("prosemirror-markdown"), require("markdown-it-task-lists")) : typeof define === "function" && define.amd ? define(["exports", "@tiptap/core", "@tiptap/pm/state", "@tiptap/pm/model", "markdown-it", "prosemirror-markdown", "markdown-it-task-lists"], factory) : (global = typeof globalThis !== "undefined" ? globalThis : global || self, factory(global["tiptap-markdown"] = {}, global.core, global.state, global.model, global.markdownit, global.prosemirrorMarkdown, global.taskListPlugin));
-})(this, function(exports2, core, state, model, markdownit, prosemirrorMarkdown, taskListPlugin) {
+  typeof exports === "object" && typeof module !== "undefined" ? factory(exports, require("@tiptap/core"), require("@tiptap/pm/state"), require("@tiptap/pm/model"), require("markdown-it"), require("prosemirror-markdown"), require("markdown-it-task-lists"), require("he")) : typeof define === "function" && define.amd ? define(["exports", "@tiptap/core", "@tiptap/pm/state", "@tiptap/pm/model", "markdown-it", "prosemirror-markdown", "markdown-it-task-lists", "he"], factory) : (global = typeof globalThis !== "undefined" ? globalThis : global || self, factory(global["tiptap-markdown"] = {}, global.core, global.state, global.model, global.markdownit, global.prosemirrorMarkdown, global.taskListPlugin, global.he));
+})(this, function(exports2, core, state, model, markdownit, prosemirrorMarkdown, taskListPlugin, he) {
   "use strict";var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => {
@@ -700,7 +700,8 @@ ${element.innerHTML}
         let processedContent = content;
         const placeholders = /* @__PURE__ */ new Map();
         let placeholderIndex = 0;
-        for (const regex of this.ignoreRegex) {
+        for (const regex of (_this$ignoreRegex = this.ignoreRegex) !== null && _this$ignoreRegex !== void 0 ? _this$ignoreRegex : []) {
+          var _this$ignoreRegex;
           processedContent = processedContent.replace(regex, (match) => {
             const placeholder = `IGNORE_${placeholderIndex}`;
             placeholders.set(placeholder, match);
@@ -725,17 +726,23 @@ ${element.innerHTML}
           }, element);
         });
         let finalHTML = element.innerHTML;
-        const entries = Array.from(placeholders.entries());
-        for (let i = entries.length - 1; i >= 0; i--) {
-          const [placeholder, original] = entries[i];
-          finalHTML = finalHTML.split(placeholder).join(original);
-        }
         const finalElement = elementFromString(finalHTML);
         this.normalizeDOM(finalElement, {
           inline,
           content
         });
-        return finalElement.innerHTML;
+        finalHTML = finalElement.innerHTML;
+        const entries = Array.from(placeholders.entries());
+        for (let i = entries.length - 1; i >= 0; i--) {
+          const [placeholder, original] = entries[i];
+          let processedOriginal = original;
+          processedOriginal = processedOriginal.replace(/(\S)</g, "$1 <");
+          processedOriginal = processedOriginal.replace(/<(\S)/g, "< $1");
+          processedOriginal = processedOriginal.replace(/(\S)>/g, "$1 >");
+          processedOriginal = processedOriginal.replace(/>(\S)/g, "> $1");
+          finalHTML = finalHTML.split(placeholder).join(processedOriginal);
+        }
+        return he.decode(finalHTML);
       }
       return content;
     }
